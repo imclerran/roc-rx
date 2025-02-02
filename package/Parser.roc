@@ -1,23 +1,24 @@
 module [
-    Parser, 
-    Maybe, 
-    filter, 
-    map, 
-    flat_map, 
-    zero_or_more, 
-    one_or_more, 
-    zip, 
-    zip_3, 
-    zip_4, 
-    zip_5, 
-    optional, 
-    lhs, 
-    rhs, 
-    both, 
-    string, 
-    char, 
-    digit, 
-    number
+    Parser,
+    Maybe,
+    filter,
+    map,
+    flat_map,
+    zero_or_more,
+    one_or_more,
+    zip,
+    zip_3,
+    zip_4,
+    zip_5,
+    optional,
+    one_of,
+    lhs,
+    rhs,
+    both,
+    string,
+    char,
+    digit,
+    number,
 ]
 
 import Utils exposing [is_digit]
@@ -111,6 +112,31 @@ optional = |parser|
             Ok((match, rest)) -> Ok((Some(match), rest))
             Err _ -> Ok((None, str))
 
+## Try each parser in sequence until one succeeds
+one_of : List (Parser a err) -> Parser a [NoMatchFound]
+one_of = |parsers|
+    |str|
+        List.walk_until(
+            parsers,
+            Err(NoMatchFound),
+            |none, parser|
+                when parser(str) is
+                    Ok(result) -> Break(Ok(result))
+                    Err _ -> Continue(none),
+        )
+
+expect
+    parser = one_of([string("abc"), string("def")])
+    parser("abc") == Ok(("abc", ""))
+    
+expect
+    parser = one_of([string("abc"), string("def")])
+    parser("def") == Ok(("def", ""))
+
+expect
+    parser = one_of([string("abc"), string("def")])
+    parser("ghi") == Err(NoMatchFound)
+
 ## OPERATORS ------------------------------------------------------------------
 
 ## keep the result of the left parser
@@ -118,14 +144,30 @@ lhs : Parser a _, Parser b _ -> Parser a _
 lhs = |parser_l, parser_r|
     zip(parser_l, parser_r) |> map(|(l, _r)| Ok(l))
 
+expect
+    parser = string("l") |> lhs(string("r"))
+    parser("lr") == Ok(("l", ""))
+
 ## keep the result of the right parser
 rhs : Parser a _, Parser b _ -> Parser b _
 rhs = |parser_l, parser_r|
     zip(parser_l, parser_r) |> map(|(_l, r)| Ok(r))
 
+expect
+    parser = string("l") |> rhs(string("r"))
+    parser("lr") == Ok(("r", ""))
+
+expect
+    parser = string("{") |> rhs(number) |> lhs(string("}"))
+    parser("{123}") == Ok((123, ""))
+
 ## keep the result of both parsers
 both : Parser a _, Parser b _ -> Parser (a, b) _
 both = |parser_l, parser_r| zip(parser_l, parser_r)
+
+expect
+    parser = string("{") |> both(string("}"))
+    parser("{}") == Ok (("{", "}"), "")
 
 ## PARSERS --------------------------------------------------------------------
 
@@ -138,6 +180,12 @@ string = |prefix|
         else
             Err StringNotFound
 
+expect
+    string("{")("{") == Ok(("{", ""))
+        
+expect
+    string("Hello")("Hello, world!") == Ok(("Hello", ", world!"))
+
 ## Parse a single character
 char : Parser U8 [CharNotFound]
 char = |str|
@@ -145,9 +193,15 @@ char = |str|
         [c, .. as rest] -> Ok((c, Str.from_utf8_lossy(rest)))
         [] -> Err CharNotFound
 
+expect
+    char("1") == Ok(('1', ""))
+
 ## Parse a digit
 digit : Parser U8 [NotADigit]
 digit = |str| filter(char, |c| is_digit(c))(str) |> Result.map_err(|_| NotADigit)
+
+expect
+    digit("1") == Ok(('1', ""))
 
 ## Parse a number
 number : Parser U64 [NotANumber]
@@ -155,33 +209,8 @@ number = |str|
     parser = one_or_more(digit) |> map(|digits| digits |> Str.from_utf8_lossy |> Str.to_u64)
     parser(str) |> Result.map_err(|_| NotANumber)
 
-## TESTS ----------------------------------------------------------------------
-expect
-    string("{")("{") == Ok(("{", ""))
-
-expect
-    string("Hello")("Hello, world!") == Ok(("Hello", ", world!"))
-
-expect
-    char("1") == Ok(('1', ""))
-
-expect
-    digit("1") == Ok(('1', ""))
-
 expect
     number("1") == Ok((1, ""))
 
 expect
-    number("12345")  == Ok((12345, ""))
-
-expect
-    parser = string("{") |> both(string("}"))
-    parser("{}") == Ok (("{", "}"), "")
-
-expect
-    parser = string("{") |> rhs(char) |> lhs(string("}"))
-    parser("{1}") == Ok(('1', ""))
-
-expect
-    parser = string("{") |> rhs(number) |> lhs(string("}"))
-    parser("{123}") == Ok((123, ""))
+    number("12345") == Ok((12345, ""))
