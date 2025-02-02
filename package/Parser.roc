@@ -1,17 +1,12 @@
-module [Parser, filter, map, flat_map, zero_or_more, one_or_more, zip, zip_3]
+module [Parser, Option, filter, map, flat_map, zero_or_more, one_or_more, zip, zip_3, option]
 
 Parser a err : Str -> Result (a, Str) err
 
+Option a : [Some a, None]
+
 filter : Parser a _, (a -> Bool) -> Parser a [FilteredOut]_
 filter = |parser, predicate|
-    map(
-        parser,
-        |match|
-            if predicate(match) then
-                Ok(match)
-            else
-                Err FilteredOut,
-    )
+    map(parser, |match| if predicate(match) then Ok(match) else Err FilteredOut)
 
 map : Parser a _, (a -> Result b _) -> Parser b _
 map = |parser, transform|
@@ -73,3 +68,10 @@ zip = |parser_a, parser_b|
 zip_3 : Parser a _, Parser b _, Parser c _ -> Parser (a, b, c) _
 zip_3 = |parser_a, parser_b, parser_c|
     zip(parser_a, zip(parser_b, parser_c)) |> map(|(a, (b, c))| Ok((a, b, c)))
+
+option : Parser a _ -> Parser (Option a) _
+option = |parser|
+    |str|
+        when parser(str) is
+            Ok((match, rest)) -> Ok((Some(match), rest))
+            Err _ -> Ok((None, str))
