@@ -69,9 +69,9 @@ expect character("\\+") == Ok((Char('+'), ""))
 ## CharacterRange ::= Char "-" Char
 character_range : Parser CharacterRange [InvalidCharacterRange]
 character_range = |str|
-    pattern = character |> lhs(string("-")) |> both(character) 
-    parser = 
-        pattern 
+    pattern = character |> lhs(string("-")) |> both(character)
+    parser =
+        pattern
         |> map(|(Char(start), Char(end))| if start > end then Err(InvalidCharacterRange) else Ok(CharRange((start, end))))
     parser(str) |> Result.map_err(|_| InvalidCharacterRange)
 
@@ -121,7 +121,7 @@ character_class = |str|
 ## CharacterGroupItem ::= CharacterRange | CharacterClass | Character
 character_group_item : Parser CharacterGroupItem [InvalidCharacterGroupItem]
 character_group_item = |str|
-    parser = one_of([character_range, character_class, character, ])
+    parser = one_of([character_range, character_class, character])
     parser(str) |> Result.map_err(|_| InvalidCharacterGroupItem)
 
 expect character_group_item("a") == Ok((Char('a'), ""))
@@ -137,11 +137,12 @@ character_group = |str|
         |> both(one_or_more(one_of([character_group_item])))
         |> lhs(string("]"))
     parser =
-        pattern 
-        |> map(|(maybe_negation, items)|
-            when maybe_negation is 
-                Some(_) -> Ok((Negated, items))
-                None -> Ok((NotNegated, items))
+        pattern
+        |> map(
+            |(maybe_negation, items)|
+                when maybe_negation is
+                    Some(_) -> Ok((Negated, items))
+                    None -> Ok((NotNegated, items)),
         )
     parser(str) |> Result.map_err(|_| InvalidCharacterGroup)
 
@@ -194,10 +195,11 @@ quantifier = |str|
     pattern = quantifier_type |> both(maybe(lazy_modifier))
     parser =
         pattern
-        |> map(|(q, maybe_lazy)|
-            when maybe_lazy is
-                Some(_) -> Ok((q, Lazy))
-                None -> Ok((q, NotLazy))
+        |> map(
+            |(q, maybe_lazy)|
+                when maybe_lazy is
+                    Some(_) -> Ok((q, Lazy))
+                    None -> Ok((q, NotLazy)),
         )
     parser(str) |> Result.map_err(|_| InvalidQuantifier)
 
@@ -269,7 +271,17 @@ anchor_end_of_string = |str|
 #       | AnchorEndOfString
 anchor : Parser Anchor [InvalidAnchor]
 anchor = |str|
-    parser = one_of([anchor_word_boundary, anchor_non_word_boundary, anchor_start_of_string_only, anchor_end_of_string_only_not_newline, anchor_end_of_string_only, anchor_previous_match_end, anchor_end_of_string])
+    parser = one_of(
+        [
+            anchor_word_boundary,
+            anchor_non_word_boundary,
+            anchor_start_of_string_only,
+            anchor_end_of_string_only_not_newline,
+            anchor_end_of_string_only,
+            anchor_previous_match_end,
+            anchor_end_of_string,
+        ],
+    )
     parser(str) |> Result.map_err(|_| InvalidAnchor)
 
 expect anchor("\\b") == Ok((AnchorWordBoundary, ""))
