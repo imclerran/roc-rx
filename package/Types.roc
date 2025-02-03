@@ -10,6 +10,9 @@ module [
     CharacterClass,
     StartOfStringAnchor,
     Anchor,
+    MatchCharacterClass,
+    MatchItem,
+    Match,
 ]
 
 RangeQuantifier : [ExactRange U64, LowerBounded U64, LowerAndUpperBounded (U64, U64)]
@@ -33,3 +36,9 @@ CharacterClass : [CharacterClassAnyWord, CharacterClassAnyWordInverted, Characte
 StartOfStringAnchor : [StartOfStringAnchor, NotAnchored]
 
 Anchor : [AnchorWordBoundary, AnchorNonWordBoundary, AnchorStartOfStringOnly, AnchorEndOfStringOnlyNotNewline, AnchorEndOfStringOnly, AnchorPreviousMatchEnd, AnchorEndOfString, NotAnchored]
+
+MatchCharacterClass : [CharacterClass(CharacterClass), CharacterGroup(CharacterGroupItem)]
+
+MatchItem : [MatchAnyCharacter, MatchCharacterClass(MatchCharacterClass), MatchCharacter(Character)]
+
+Match : (MatchItem, [Quantifier(Quantifier), NotQuantified])
