@@ -3,7 +3,9 @@ module [range_quantifier, character, character_group_item, character_range, char
 import Parser exposing [Parser, Maybe, map, maybe, lhs, rhs, both, string, number, char, one_of, excluding]
 import Types exposing [RangeQuantifier, Negation, CharacterGroupItem, CharacterRange, Character]
 
-## Parse a regex range quantifier
+## RangeQuantifier ::= "{" RangeQuantifierLowerBound ( "," RangeQuantifierUpperBound? )? "}"
+## RangeQuantifierLowerBound ::= Integer
+## RangeQuantifierUpperBound ::= Integer
 range_quantifier : Parser RangeQuantifier [InvalidRangeQuantifier]
 range_quantifier = |str|
     pattern = string("{") |> rhs(number) |> both(maybe(string(",") |> rhs(maybe(number)))) |> lhs(string("}"))
@@ -27,6 +29,7 @@ expect range_quantifier("{") == Err(InvalidRangeQuantifier)
 expect range_quantifier("{1,2") == Err(InvalidRangeQuantifier)
 expect range_quantifier("{1,2,}") == Err(InvalidRangeQuantifier)
 
+## CharacterGroupNegativeModifier ::= "^"
 character_group_negative_modifier : Parser Negation [InvalidCharacterGroupNegativeModifier]
 character_group_negative_modifier = |str|
     parser = string("^") |> map(|_carrot| Ok(Negated))
@@ -34,8 +37,10 @@ character_group_negative_modifier = |str|
 
 expect character_group_negative_modifier("^") == Ok((Negated, ""))
 
+## CharacterRange ::= Char ("-" Char)?
 character_range : Parser CharacterRange [InvalidCharacterRange]
 character_range = |str|
+    
     parser = char |> lhs(string("-")) |> both(char) |> map(|(start, end)| Ok(CharRange((start, end))))
     parser(str) |> Result.map_err(|_| InvalidCharacterRange)
 
@@ -44,7 +49,7 @@ expect character_range("a-") == Err(InvalidCharacterRange)
 
 character : Parser Character [CharNotFound]
 character = |str|
-    parser = char |> excluding(|c| c == ']') |> map(|c| Ok(Char(c)))
+    parser = char |> map(|c| Ok(Char(c)))
     parser(str) |> Result.map_err(|_| CharNotFound)
 
 expect character("a") == Ok((Char('a'), ""))
