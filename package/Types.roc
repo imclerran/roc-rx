@@ -1,5 +1,8 @@
 module [
     RangeQuantifier,
+    QuantifierType,
+    Quantifier,
+    LazyModifier,
     Negation,
     Character,
     CharacterRange,
@@ -8,6 +11,12 @@ module [
 ]
 
 RangeQuantifier : [ExactRange U64, LowerBounded U64, LowerAndUpperBounded (U64, U64)]
+
+QuantifierType : [ZeroOrMoreQuantifier, OneOrMoreQuantifier, ZeroOrOneQuantifier, ExactRange U64, LowerBounded U64, LowerAndUpperBounded (U64, U64)]
+
+Quantifier : (QuantifierType, LazyModifier)
+
+LazyModifier : [Lazy, NotLazy]
 
 Negation : [Negated, NotNegated]
 

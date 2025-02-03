@@ -1,7 +1,7 @@
 module []
 
 import Parser exposing [Parser, map, maybe, lhs, rhs, both, string, number, char, one_of, excluding, one_or_more]
-import Types exposing [RangeQuantifier, Negation, CharacterGroupItem, CharacterRange, Character, CharacterClass]
+import Types exposing [RangeQuantifier, QuantifierType, Quantifier, LazyModifier, Negation, CharacterGroupItem, CharacterRange, Character, CharacterClass]
 
 ## RangeQuantifier ::= "{" RangeQuantifierLowerBound ( "," RangeQuantifierUpperBound? )? "}"
 ## RangeQuantifierLowerBound ::= Integer
@@ -140,8 +140,8 @@ character_group = |str|
         pattern 
         |> map(|(maybe_negation, items)|
             when maybe_negation is 
-                Some(Negated) -> Ok((Negated, items))
-                _ -> Ok((NotNegated, items))
+                Some(_) -> Ok((Negated, items))
+                None -> Ok((NotNegated, items))
         )
     parser(str) |> Result.map_err(|_| InvalidCharacterGroup)
 
@@ -152,4 +152,62 @@ expect character_group("[\\]]") == Ok ((NotNegated, [Char ']']), "")
 expect character_group("[\\w\\W\\d\\D]") == Ok ((NotNegated, [CharacterClassAnyWord, CharacterClassAnyWordInverted, CharacterClassAnyDecimalDigit, CharacterClassAnyDecimalDigitInverted]), "")
 expect character_group("[^a\\+-\\-b]") == Ok ((Negated, [Char 'a', CharRange(('+', '-')), Char 'b']), "")
 expect character_group("[]b]") == Err(InvalidCharacterGroup)
+
+## ZeroOrMoreQuantifier ::= "*"
+zero_or_more_quantifier : Parser QuantifierType [InvalidQuantifierType]
+zero_or_more_quantifier = |str|
+    parser = string("*") |> map(|_| Ok(ZeroOrMoreQuantifier))
+    parser(str) |> Result.map_err(|_| InvalidQuantifierType)
+
+expect zero_or_more_quantifier("*") == Ok((ZeroOrMoreQuantifier, ""))
+
+## OneOrMoreQuantifier ::= "+"
+one_or_more_quantifier : Parser QuantifierType [InvalidQuantifierType]
+one_or_more_quantifier = |str|
+    parser = string("+") |> map(|_| Ok(OneOrMoreQuantifier))
+    parser(str) |> Result.map_err(|_| InvalidQuantifierType)
+
+expect one_or_more_quantifier("+") == Ok((OneOrMoreQuantifier, ""))
+
+## ZeroOrOneQuantifier ::= "?"
+zero_or_one_quantifier : Parser QuantifierType [InvalidQuantifierType]
+zero_or_one_quantifier = |str|
+    parser = string("?") |> map(|_| Ok(ZeroOrOneQuantifier))
+    parser(str) |> Result.map_err(|_| InvalidQuantifierType)
+
+expect zero_or_one_quantifier("?") == Ok((ZeroOrOneQuantifier, ""))
+
+## LazyModifier ::= "?"
+lazy_modifier : Parser LazyModifier [InvalidLazyModifier]
+lazy_modifier = |str|
+    parser = string("?") |> map(|_| Ok(Lazy))
+    parser(str) |> Result.map_err(|_| InvalidLazyModifier)
+
+quantifier_type : Parser QuantifierType [InvalidQuantifierType]
+quantifier_type = |str|
+    parser = one_of([zero_or_more_quantifier, one_or_more_quantifier, zero_or_one_quantifier, range_quantifier])
+    parser(str) |> Result.map_err(|_| InvalidQuantifierType)
+
+## Quantifier ::= QuantifierType LazyModifier?
+quantifier : Parser Quantifier [InvalidQuantifier]
+quantifier = |str|
+    pattern = quantifier_type |> both(maybe(lazy_modifier))
+    parser =
+        pattern
+        |> map(|(q, maybe_lazy)|
+            when maybe_lazy is
+                Some(_) -> Ok((q, Lazy))
+                None -> Ok((q, NotLazy))
+        )
+    parser(str) |> Result.map_err(|_| InvalidQuantifier)
+
+expect quantifier("*") == Ok(((ZeroOrMoreQuantifier, NotLazy), ""))
+expect quantifier("+") == Ok(((OneOrMoreQuantifier, NotLazy), ""))
+expect quantifier("?") == Ok(((ZeroOrOneQuantifier, NotLazy), ""))
+expect quantifier("{1}") == Ok(((ExactRange(1), NotLazy), ""))
+expect quantifier("{1,}") == Ok(((LowerBounded(1), NotLazy), ""))
+expect quantifier("{1,2}") == Ok(((LowerAndUpperBounded((1, 2)), NotLazy), ""))
+expect quantifier("??") == Ok(((ZeroOrOneQuantifier, Lazy), ""))
+
+
 
