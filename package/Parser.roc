@@ -2,6 +2,7 @@ module [
     Parser,
     Maybe,
     filter,
+    excluding,
     map,
     flat_map,
     zero_or_more,
@@ -10,7 +11,7 @@ module [
     zip_3,
     zip_4,
     zip_5,
-    optional,
+    maybe,
     one_of,
     lhs,
     rhs,
@@ -41,6 +42,10 @@ Maybe a : [Some a, None]
 filter : Parser a _, (a -> Bool) -> Parser a [FilteredOut]
 filter = |parser, predicate|
     map(parser, |match| if predicate(match) then Ok(match) else Err FilteredOut)
+
+excluding: Parser a _, (a -> Bool) -> Parser a [Excluded]_
+excluding = |parser, predicate|
+    map(parser, |match| if predicate(match) then Err Excluded else Ok(match))
 
 ## Convert a parser of one type into a parser of another type using a tranform function which turns the first type into a result of the second type
 map : Parser a _, (a -> Result b _) -> Parser b _
@@ -105,8 +110,8 @@ zip_5 = |parser_a, parser_b, parser_c, parser_d, parser_e|
     zip(parser_a, zip_4(parser_b, parser_c, parser_d, parser_e)) |> map(|(a, (b, c, d, e))| Ok((a, b, c, d, e)))
 
 ## Convert a parser that can fail into a parser that can return a Maybe
-optional : Parser a _ -> Parser (Maybe a) _
-optional = |parser|
+maybe : Parser a _ -> Parser (Maybe a) _
+maybe = |parser|
     |str|
         when parser(str) is
             Ok((match, rest)) -> Ok((Some(match), rest))
