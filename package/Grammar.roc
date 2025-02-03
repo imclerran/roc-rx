@@ -35,7 +35,6 @@ character_group_negative_modifier = |str|
     parser = string("^") |> map(|_carrot| Ok(Negated))
     parser(str) |> Result.map_err(|_| InvalidCharacterGroupNegativeModifier)
 
-## CharacterGroupNegativeModifier ::= "^"
 expect character_group_negative_modifier("^") == Ok((Negated, ""))
 
 character_excluding_escaped : Parser Character [CharNotFound]
@@ -113,6 +112,7 @@ character_class_any_decimal_digit_inverted = |str|
 
 expect character_class_any_decimal_digit_inverted("\\D") == Ok((CharacterClassAnyDecimalDigitInverted, ""))
 
+## CharacterClass ::= CharacterClassAnyWord | CharacterClassAnyWordInverted | CharacterClassAnyDecimalDigit | CharacterClassAnyDecimalDigitInverted
 character_class : Parser CharacterClass [InvalidCharacterClass]
 character_class = |str|
     parser = one_of([character_class_any_word, character_class_any_word_inverted, character_class_any_decimal_digit, character_class_any_decimal_digit_inverted])
@@ -128,6 +128,7 @@ expect character_group_item("a") == Ok((Char('a'), ""))
 expect character_group_item("a-b") == Ok((CharRange(('a', 'b')), ""))
 expect character_group_item("\\w") == Ok((CharacterClassAnyWord, ""))
 
+## CharacterGroup ::= "[" CharacterGroupNegativeModifier? CharacterGroupItem+ "]"
 character_group : Parser (Negation, List CharacterGroupItem) [InvalidCharacterGroup]
 character_group = |str|
     pattern =
