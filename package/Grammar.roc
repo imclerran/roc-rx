@@ -231,63 +231,12 @@ anchor_non_word_boundary = |str|
     parser = string("\\B") |> map(|_| Ok(AnchorNonWordBoundary))
     parser(str) |> Result.map_err(|_| InvalidAnchor)
 
-## Anchor ::= "\A"
-anchor_start_of_string_only : Parser Anchor [InvalidAnchor]
-anchor_start_of_string_only = |str|
-    parser = string("\\A") |> map(|_| Ok(AnchorStartOfStringOnly))
-    parser(str) |> Result.map_err(|_| InvalidAnchor)
-
-## Anchor ::= "\Z"
-anchor_end_of_string_only_not_newline : Parser Anchor [InvalidAnchor]
-anchor_end_of_string_only_not_newline = |str|
-    parser = string("\\z") |> map(|_| Ok(AnchorEndOfStringOnlyNotNewline))
-    parser(str) |> Result.map_err(|_| InvalidAnchor)
-
-## Anchor ::= "\Z"
-anchor_end_of_string_only : Parser Anchor [InvalidAnchor]
-anchor_end_of_string_only = |str|
-    parser = string("\\Z") |> map(|_| Ok(AnchorEndOfStringOnly))
-    parser(str) |> Result.map_err(|_| InvalidAnchor)
-
-## Anchor ::= "\G"
-anchor_previous_match_end : Parser Anchor [InvalidAnchor]
-anchor_previous_match_end = |str|
-    parser = string("\\G") |> map(|_| Ok(AnchorPreviousMatchEnd))
-    parser(str) |> Result.map_err(|_| InvalidAnchor)
-
-## Anchor ::= "\Z"
-anchor_end_of_string : Parser Anchor [InvalidAnchor]
-anchor_end_of_string = |str|
-    parser = string("\\$") |> map(|_| Ok(AnchorEndOfString))
-    parser(str) |> Result.map_err(|_| InvalidAnchor)
-
-# Anchor
-#     ::= AnchorWordBoundary
-#       | AnchorNonWordBoundary
-#       | AnchorStartOfStringOnly
-#       | AnchorEndOfStringOnlyNotNewline
-#       | AnchorEndOfStringOnly
-#       | AnchorPreviousMatchEnd
-#       | AnchorEndOfString
+# Anchor ::= AnchorWordBoundary | AnchorNonWordBoundary
 anchor : Parser Anchor [InvalidAnchor]
 anchor = |str|
-    parser = one_of(
-        [
-            anchor_word_boundary,
-            anchor_non_word_boundary,
-            anchor_start_of_string_only,
-            anchor_end_of_string_only_not_newline,
-            anchor_end_of_string_only,
-            anchor_previous_match_end,
-            anchor_end_of_string,
-        ],
-    )
+    parser = one_of([anchor_word_boundary, anchor_non_word_boundary])
     parser(str) |> Result.map_err(|_| InvalidAnchor)
 
 expect anchor("\\b") == Ok((AnchorWordBoundary, ""))
 expect anchor("\\B") == Ok((AnchorNonWordBoundary, ""))
-expect anchor("\\A") == Ok((AnchorStartOfStringOnly, ""))
-expect anchor("\\z") == Ok((AnchorEndOfStringOnlyNotNewline, ""))
-expect anchor("\\Z") == Ok((AnchorEndOfStringOnly, ""))
-expect anchor("\\G") == Ok((AnchorPreviousMatchEnd, ""))
-expect anchor("\\$") == Ok((AnchorEndOfString, ""))
+
