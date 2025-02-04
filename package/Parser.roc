@@ -43,7 +43,7 @@ filter : Parser a _, (a -> Bool) -> Parser a [FilteredOut]
 filter = |parser, predicate|
     map(parser, |match| if predicate(match) then Ok(match) else Err FilteredOut)
 
-excluding: Parser a _, (a -> Bool) -> Parser a [Excluded]_
+excluding : Parser a _, (a -> Bool) -> Parser a [Excluded]_
 excluding = |parser, predicate|
     map(parser, |match| if predicate(match) then Err Excluded else Ok(match))
 
@@ -133,7 +133,7 @@ one_of = |parsers|
 expect
     parser = one_of([string("abc"), string("def")])
     parser("abc") == Ok(("abc", ""))
-    
+
 expect
     parser = one_of([string("abc"), string("def")])
     parser("def") == Ok(("def", ""))
@@ -187,7 +187,7 @@ string = |prefix|
 
 expect
     string("{")("{") == Ok(("{", ""))
-        
+
 expect
     string("Hello")("Hello, world!") == Ok(("Hello", ", world!"))
 

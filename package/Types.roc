@@ -7,38 +7,99 @@ module [
     Character,
     CharacterRange,
     CharacterGroupItem,
+    CharacterGroup,
     CharacterClass,
     StartOfStringAnchor,
     Anchor,
     MatchCharacterClass,
     MatchItem,
     Match,
+    GroupModifier,
+    Group,
+    Expression,
+    # Subexpression,
 ]
 
-RangeQuantifier : [ExactRange U64, LowerBounded U64, LowerAndUpperBounded (U64, U64)]
+RangeQuantifier : [
+    ExactRange U64,
+    LowerBounded U64,
+    LowerAndUpperBounded (U64, U64),
+]
 
-QuantifierType : [ZeroOrMoreQuantifier, OneOrMoreQuantifier, ZeroOrOneQuantifier, ExactRange U64, LowerBounded U64, LowerAndUpperBounded (U64, U64)]
+QuantifierType : [
+    ZeroOrMoreQuantifier,
+    OneOrMoreQuantifier,
+    ZeroOrOneQuantifier,
+    ExactRange U64,
+    LowerBounded U64,
+    LowerAndUpperBounded (U64, U64),
+]
 
-Quantifier : (QuantifierType, LazyModifier)
+Quantifier : { q: QuantifierType, modifier: LazyModifier }
 
 LazyModifier : [Lazy, NotLazy]
 
 Negation : [Negated, NotNegated]
 
-Character : [Char (U8)]
+Character : [Char U8]
 
 CharacterRange : [CharRange (U8, U8)]
 
-CharacterGroupItem : [CharacterClassFromUnicodeCategory, CharRange(U8, U8), Char(U8), CharacterClassAnyWord, CharacterClassAnyWordInverted, CharacterClassAnyDecimalDigit, CharacterClassAnyDecimalDigitInverted]
+CharacterGroupItem : [
+    CharacterClassFromUnicodeCategory,
+    CharRange (U8, U8),
+    Char U8,
+    CharacterClassAnyWord,
+    CharacterClassAnyWordInverted,
+    CharacterClassAnyDecimalDigit,
+    CharacterClassAnyDecimalDigitInverted,
+    CharacterClassAnyWhitepace,
+    CharacterClassAnyWhitespaceInverted,
+]
 
-CharacterClass : [CharacterClassAnyWord, CharacterClassAnyWordInverted, CharacterClassAnyDecimalDigit, CharacterClassAnyDecimalDigitInverted]
+CharacterGroup : { items: List CharacterGroupItem , negation: Negation }
 
 StartOfStringAnchor : [StartOfStringAnchor, NotAnchored]
 
-Anchor : [AnchorWordBoundary, AnchorNonWordBoundary, AnchorStartOfStringOnly, AnchorEndOfStringOnlyNotNewline, AnchorEndOfStringOnly, AnchorPreviousMatchEnd, AnchorEndOfString, NotAnchored]
+Anchor : [AnchorWordBoundary, AnchorNonWordBoundary]
 
-MatchCharacterClass : [CharacterClass(CharacterClass), CharacterGroup(CharacterGroupItem)]
+CharacterClass : [
+    CharacterClassAnyWord,
+    CharacterClassAnyWordInverted,
+    CharacterClassAnyDecimalDigit,
+    CharacterClassAnyDecimalDigitInverted,
+    CharacterClassAnyWhitepace,
+    CharacterClassAnyWhitespaceInverted,
+]
 
-MatchItem : [MatchAnyCharacter, MatchCharacterClass(MatchCharacterClass), MatchCharacter(Character)]
+MatchCharacterClass : [
+    CharacterGroup CharacterGroup,
+    CharacterClassAnyWord,
+    CharacterClassAnyWordInverted,
+    CharacterClassAnyDecimalDigit,
+    CharacterClassAnyDecimalDigitInverted,
+    CharacterClassAnyWhitepace,
+    CharacterClassAnyWhitespaceInverted,
+]
 
-Match : (MatchItem, [Quantifier(Quantifier), NotQuantified])
+MatchItem : [
+    MatchAnyCharacter,
+    CharacterGroup CharacterGroup,
+    CharacterClassAnyWord,
+    CharacterClassAnyWordInverted,
+    CharacterClassAnyDecimalDigit,
+    CharacterClassAnyDecimalDigitInverted,
+    CharacterClassAnyWhitepace,
+    CharacterClassAnyWhitespaceInverted,
+    Char U8,
+]
+
+Match : { item: MatchItem, quantifier: [Quantifier Quantifier, NotQuantified] }
+
+GroupModifier : [Capturing, NonCapturing]
+
+Group : {expression: Expression, quantifier: [Quantifier Quantifier, NotQuantified], modifier: GroupModifier }
+
+Expression : [NotImplemented] # ([Match(Match), Group(Group), AnchorWordBoundary, AnchorNonWordBoundary], [Expression(Expression), NoExpression])
+
+# Subexpression : [Match(Match), Group(Group), AnchorWordBoundary, AnchorNonWordBoundary]
