@@ -42,8 +42,8 @@ group = |str|
     parser(str) |> Result.map_err(|_| InvalidGroup)
 
 expect 
-    res = group("(?:a)") 
-    res == Ok(({ expression: NotImplemented, quantifier: NotQuantified, modifier: NonCapturing }, ""))
+    res = group("(?:a)+?") 
+    res == Ok(({ expression: NotImplemented, quantifier: Quantifier({ q: OneOrMoreQuantifier, modifier: Lazy }), modifier: NonCapturing }, ""))
 
 ## GroupNonCapturingModifier ::= "?:"
 group_non_capturing_modifier : Parser GroupModifier [InvalidGroupModifier]
