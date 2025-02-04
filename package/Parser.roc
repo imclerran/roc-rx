@@ -218,4 +218,4 @@ expect
     number("1") == Ok((1, ""))
 
 expect
-    number("12345") == Ok((12345, ""))
+    number("012345") == Ok((12345, ""))
