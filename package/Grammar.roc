@@ -23,13 +23,15 @@ import Types exposing [
     Expression,
 ]
 
+## Expression ::= Subexpression ("|" Expression)?
 expression : Parser Expression [InvalidExpression]
-expression = |str| #Ok((NotImplemented, str))
+expression = |str|
     parser = string("a") |> map(|_| Ok(NotImplemented))
     parser(str) |> Result.map_err(|_| InvalidExpression)
 
 # subexpression : Parser Subexpression [InvalidSubexpression]
 
+## Group ::= "(" GroupNonCapturingModifier? Expression ")" Quantifier?
 group : Parser Group [InvalidGroup]
 group = |str|
     pattern = 
