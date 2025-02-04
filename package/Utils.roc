@@ -7,30 +7,26 @@ Maybe a : [Some a, None]
 is_digit : U8 -> Bool
 is_digit = |c| c >= '0' and c <= '9'
 
-
-# quantifer_for_match : Quantifier -> GroupQuantifier
-# quantifer_for_match = quantifier_for_group
-
 quantify : Maybe Quantifier -> [Quantifier Quantifier, NotQuantified]
-quantify = |maybe_quantifier| 
+quantify = |maybe_quantifier|
     when maybe_quantifier is
         Some(q) -> Quantifier(q)
         None -> NotQuantified
 
 modify : Maybe GroupModifier -> GroupModifier
-modify = |maybe_modifier| 
+modify = |maybe_modifier|
     when maybe_modifier is
         Some(m) -> m
         None -> NonCapturing
 
 negate : Maybe Negation -> Negation
-negate = |maybe_negation| 
+negate = |maybe_negation|
     when maybe_negation is
         Some(n) -> n
         None -> NotNegated
 
 lazy : Maybe LazyModifier -> LazyModifier
-lazy = |maybe_lazy| 
+lazy = |maybe_lazy|
     when maybe_lazy is
         Some(l) -> l
         None -> NotLazy

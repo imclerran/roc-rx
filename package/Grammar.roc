@@ -34,17 +34,17 @@ expression = |str|
 ## Group ::= "(" GroupNonCapturingModifier? Expression ")" Quantifier?
 group : Parser Group [InvalidGroup]
 group = |str|
-    pattern = 
-        string("(") 
-        |> rhs(maybe(group_non_capturing_modifier)) 
-        |> both(expression) 
-        |> lhs(string(")")) 
+    pattern =
+        string("(")
+        |> rhs(maybe(group_non_capturing_modifier))
+        |> both(expression)
+        |> lhs(string(")"))
         |> both(maybe(quantifier))
-    parser = pattern |> map(|((maybe_mod, expr), maybe_q)| Ok({ expression: expr, quantifier: quantify(maybe_q), modifier: modify(maybe_mod)}))
+    parser = pattern |> map(|((maybe_mod, expr), maybe_q)| Ok({ expression: expr, quantifier: quantify(maybe_q), modifier: modify(maybe_mod) }))
     parser(str) |> Result.map_err(|_| InvalidGroup)
 
-expect 
-    res = group("(?:a)+?") 
+expect
+    res = group("(?:a)+?")
     res == Ok(({ expression: NotImplemented, quantifier: Quantifier({ q: OneOrMoreQuantifier, modifier: Lazy }), modifier: NonCapturing }, ""))
 
 ## GroupNonCapturingModifier ::= "?:"
@@ -57,12 +57,12 @@ group_non_capturing_modifier = |str|
 match : Parser Match [InvalidMatch]
 match = |str|
     pattern = match_item |> both(maybe(quantifier))
-    parser = pattern |> map(|(item, maybe_q)|Ok({ item, quantifier: quantify(maybe_q) }))
+    parser = pattern |> map(|(item, maybe_q)| Ok({ item, quantifier: quantify(maybe_q) }))
     parser(str) |> Result.map_err(|_| InvalidMatch)
 
-expect match(".") == Ok(({item: MatchAnyCharacter, quantifier: NotQuantified}, ""))
-expect match("[a-z]{1,26}?") == Ok(({item: CharacterGroup({ items: [CharRange(('a', 'z'))], negation: NotNegated }), quantifier: Quantifier({q: LowerAndUpperBounded((1, 26)), modifier: Lazy})}, ""))
-expect match("a?") == Ok(({item: Char('a'), quantifier: Quantifier({ q: ZeroOrOneQuantifier, modifier: NotLazy})}, ""))
+expect match(".") == Ok(({ item: MatchAnyCharacter, quantifier: NotQuantified }, ""))
+expect match("[a-z]{1,26}?") == Ok(({ item: CharacterGroup({ items: [CharRange(('a', 'z'))], negation: NotNegated }), quantifier: Quantifier({ q: LowerAndUpperBounded((1, 26)), modifier: Lazy }) }, ""))
+expect match("a?") == Ok(({ item: Char('a'), quantifier: Quantifier({ q: ZeroOrOneQuantifier, modifier: NotLazy }) }, ""))
 
 ## MatchItem ::= MatchAnyCharacter | MatchCharacterClass | MatchCharacter
 match_item : Parser MatchItem [InvalidMatchItem]
@@ -90,7 +90,7 @@ match_character_class = |str|
     parser(str) |> Result.map_err(|_| InvalidMatchCharacterClass)
 
 expect match_character_class("[a]") == Ok((CharacterGroup({ items: [Char 'a'], negation: NotNegated }), ""))
-expect match_character_class("\\w") == Ok(((CharacterClassAnyWord), ""))
+expect match_character_class("\\w") == Ok((CharacterClassAnyWord, ""))
 
 ## RangeQuantifier ::= "{" RangeQuantifierLowerBound ( "," RangeQuantifierUpperBound? )? "}"
 ## RangeQuantifierLowerBound ::= Integer
@@ -126,36 +126,7 @@ character_group_negative_modifier = |str|
 
 expect character_group_negative_modifier("^") == Ok((Negated, ""))
 
-character_excluding_escaped : Parser Character [CharNotFound]
-character_excluding_escaped = |str|
-    excluded_characters = ['.', '^', '$', '*', '+', '?', '(', ')', '[', ']', '{', '}', '|', '\\', '/', '-', ' ']
-    parser = char |> excluding(|c| List.contains(excluded_characters, c)) |> map(|c| Ok(Char(c)))
-    parser(str) |> Result.map_err(|_| CharNotFound)
-
-expect character_excluding_escaped("a") == Ok((Char('a'), ""))
-expect character_excluding_escaped(" ") == Err(CharNotFound)
-
-escaped_reserved_character : Parser Character [EscapedCharNotFound]
-escaped_reserved_character = |str|
-    reserved_character_strs =
-        ["\\.", "\\^", "\\$", "\\*", "\\+", "\\?", "\\(", "\\)", "\\[", "\\]", "\\{", "\\}", "\\|", "\\\\", "\\/", "\\-", "\\ "]
-    pattern = one_of(List.map(reserved_character_strs, string))
-    parser = pattern |> map(|s| s |> Str.to_utf8 |> List.get(1) |> Result.map_ok(|c| Char(c)))
-    parser(str) |> Result.map_err(|_| EscapedCharNotFound)
-
-expect escaped_reserved_character("\\\\") == Ok((Char('\\'), ""))
-expect escaped_reserved_character("\\+") == Ok((Char('+'), ""))
-
-## Character ::= Char | EscapedReservedCharacter
-character : Parser Character [CharNotFound]
-character = |str|
-    parser = one_of([character_excluding_escaped, escaped_reserved_character])
-    parser(str) |> Result.map_err(|_| CharNotFound)
-
-expect character("a") == Ok((Char('a'), ""))
-expect character("\\+") == Ok((Char('+'), ""))
-
-## CharacterRange ::= Char "-" Char
+## CharacterRange ::= Character "-" Character
 character_range : Parser CharacterRange [InvalidCharacterRange]
 character_range = |str|
     pattern = character |> lhs(string("-")) |> both(character)
@@ -168,6 +139,37 @@ expect character_range("a-b") == Ok((CharRange((97, 98)), ""))
 expect character_range("a-") == Err(InvalidCharacterRange)
 expect character_range("\\+-\\-") == Ok((CharRange(('+', '-')), ""))
 expect character_range("b-a") == Err(InvalidCharacterRange)
+
+## Character ::= CharacterExcludingEscaped | EscapedReservedCharacter
+character : Parser Character [CharNotFound]
+character = |str|
+    parser = one_of([character_excluding_escaped, escaped_reserved_character])
+    parser(str) |> Result.map_err(|_| CharNotFound)
+
+expect character("a") == Ok((Char('a'), ""))
+expect character("\\+") == Ok((Char('+'), ""))
+
+## CharacterExcludingEscaped ::= Char
+character_excluding_escaped : Parser Character [CharNotFound]
+character_excluding_escaped = |str|
+    excluded_characters = ['.', '^', '$', '*', '+', '?', '(', ')', '[', ']', '{', '}', '|', '\\', '/', '-', ' ']
+    parser = char |> excluding(|c| List.contains(excluded_characters, c)) |> map(|c| Ok(Char(c)))
+    parser(str) |> Result.map_err(|_| CharNotFound)
+
+expect character_excluding_escaped("a") == Ok((Char('a'), ""))
+expect character_excluding_escaped(" ") == Err(CharNotFound)
+
+## EscapedReservedCharacter ::= "\." | "\^" | "\$" | "\*" | "\+" | "\?" | "\(" | "\)" | "\[" | "\]" | "\{" | "\}" | "\|" | "\\" | "\/" | "\-" | "\ "
+escaped_reserved_character : Parser Character [EscapedCharNotFound]
+escaped_reserved_character = |str|
+    reserved_character_strs =
+        ["\\.", "\\^", "\\$", "\\*", "\\+", "\\?", "\\(", "\\)", "\\[", "\\]", "\\{", "\\}", "\\|", "\\\\", "\\/", "\\-", "\\ "]
+    pattern = one_of(List.map(reserved_character_strs, string))
+    parser = pattern |> map(|s| s |> Str.to_utf8 |> List.get(1) |> Result.map_ok(|c| Char(c)))
+    parser(str) |> Result.map_err(|_| EscapedCharNotFound)
+
+expect escaped_reserved_character("\\\\") == Ok((Char('\\'), ""))
+expect escaped_reserved_character("\\+") == Ok((Char('+'), ""))
 
 ## CharacterClassAnyWord ::= "\w"
 character_class_any_word : Parser CharacterClass [InvalidCharacterClass]
@@ -201,6 +203,7 @@ character_class_any_decimal_digit_inverted = |str|
 
 expect character_class_any_decimal_digit_inverted("\\D") == Ok((CharacterClassAnyDecimalDigitInverted, ""))
 
+## CharacterClassAnyWhitepace ::= "\s"
 character_class_any_whitespace : Parser CharacterClass [InvalidCharacterClass]
 character_class_any_whitespace = |str|
     parser = string("\\s") |> map(|_| Ok(CharacterClassAnyWhitepace))
@@ -208,6 +211,7 @@ character_class_any_whitespace = |str|
 
 expect character_class_any_whitespace("\\s") == Ok((CharacterClassAnyWhitepace, ""))
 
+## CharacterClassAnyWhitespaceInverted ::= "\S"
 character_class_any_whitespace_inverted : Parser CharacterClass [InvalidCharacterClass]
 character_class_any_whitespace_inverted = |str|
     parser = string("\\S") |> map(|_| Ok(CharacterClassAnyWhitespaceInverted))
@@ -254,7 +258,7 @@ character_group = |str|
         |> rhs(maybe(character_group_negative_modifier))
         |> both(one_or_more(one_of([character_group_item])))
         |> lhs(string("]"))
-    parser =  pattern |> map(|(maybe_n, items)| Ok(CharacterGroup({ items, negation: negate(maybe_n) })))
+    parser = pattern |> map(|(maybe_n, items)| Ok(CharacterGroup({ items, negation: negate(maybe_n) })))
     parser(str) |> Result.map_err(|_| InvalidCharacterGroup)
 
 expect character_group("[a]") == Ok((CharacterGroup({ items: [Char 'a'], negation: NotNegated }), ""))
@@ -295,6 +299,11 @@ lazy_modifier = |str|
     parser = string("?") |> map(|_| Ok(Lazy))
     parser(str) |> Result.map_err(|_| InvalidLazyModifier)
 
+## QuantifierType
+##     ::= ZeroOrMoreQuantifier
+##       | OneOrMoreQuantifier
+##       | ZeroOrOneQuantifier
+##       | RangeQuantifier
 quantifier_type : Parser QuantifierType [InvalidQuantifierType]
 quantifier_type = |str|
     parser = one_of([zero_or_more_quantifier, one_or_more_quantifier, zero_or_one_quantifier, range_quantifier])
@@ -307,20 +316,20 @@ quantifier = |str|
     parser =
         pattern
         |> map(
-            |(q, maybe_l)| Ok({q, modifier: lazy(maybe_l)})
-                # when maybe_l is
-                #     Some(_) -> Ok((q, Lazy))
-                #     None -> Ok((q, NotLazy)),
+            |(q, maybe_l)| Ok({ q, modifier: lazy(maybe_l) }),
+            # when maybe_l is
+            #     Some(_) -> Ok((q, Lazy))
+            #     None -> Ok((q, NotLazy)),
         )
     parser(str) |> Result.map_err(|_| InvalidQuantifier)
 
-expect quantifier("*") == Ok(({ q: ZeroOrMoreQuantifier, modifier: NotLazy}, ""))
-expect quantifier("+") == Ok(({ q: OneOrMoreQuantifier, modifier: NotLazy}, ""))
-expect quantifier("?") == Ok(({ q: ZeroOrOneQuantifier, modifier: NotLazy}, ""))
-expect quantifier("{1}") == Ok(({ q: ExactRange(1), modifier: NotLazy}, ""))
-expect quantifier("{1,}") == Ok(({ q: LowerBounded(1), modifier: NotLazy}, ""))
-expect quantifier("{1,2}") == Ok(({ q: LowerAndUpperBounded((1, 2)), modifier: NotLazy}, ""))
-expect quantifier("??") == Ok(({ q: ZeroOrOneQuantifier, modifier: Lazy}, ""))
+expect quantifier("*") == Ok(({ q: ZeroOrMoreQuantifier, modifier: NotLazy }, ""))
+expect quantifier("+") == Ok(({ q: OneOrMoreQuantifier, modifier: NotLazy }, ""))
+expect quantifier("?") == Ok(({ q: ZeroOrOneQuantifier, modifier: NotLazy }, ""))
+expect quantifier("{1}") == Ok(({ q: ExactRange(1), modifier: NotLazy }, ""))
+expect quantifier("{1,}") == Ok(({ q: LowerBounded(1), modifier: NotLazy }, ""))
+expect quantifier("{1,2}") == Ok(({ q: LowerAndUpperBounded((1, 2)), modifier: NotLazy }, ""))
+expect quantifier("??") == Ok(({ q: ZeroOrOneQuantifier, modifier: Lazy }, ""))
 
 ## StartOfStringAnchor ::= "^"
 start_of_string_anchor : Parser StartOfStringAnchor [InvalidStartOfStringAnchor]
@@ -350,4 +359,3 @@ anchor = |str|
 
 expect anchor("\\b") == Ok((AnchorWordBoundary, ""))
 expect anchor("\\B") == Ok((AnchorNonWordBoundary, ""))
-

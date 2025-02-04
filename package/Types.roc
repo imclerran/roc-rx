@@ -35,7 +35,7 @@ QuantifierType : [
     LowerAndUpperBounded (U64, U64),
 ]
 
-Quantifier : { q: QuantifierType, modifier: LazyModifier }
+Quantifier : { q : QuantifierType, modifier : LazyModifier }
 
 LazyModifier : [Lazy, NotLazy]
 
@@ -57,7 +57,7 @@ CharacterGroupItem : [
     CharacterClassAnyWhitespaceInverted,
 ]
 
-CharacterGroup : { items: List CharacterGroupItem , negation: Negation }
+CharacterGroup : { items : List CharacterGroupItem, negation : Negation }
 
 StartOfStringAnchor : [StartOfStringAnchor, NotAnchored]
 
@@ -94,12 +94,24 @@ MatchItem : [
     Char U8,
 ]
 
-Match : { item: MatchItem, quantifier: [Quantifier Quantifier, NotQuantified] }
+Match : { item : MatchItem, quantifier : [Quantifier Quantifier, NotQuantified] }
 
 GroupModifier : [Capturing, NonCapturing]
 
-Group : {expression: Expression, quantifier: [Quantifier Quantifier, NotQuantified], modifier: GroupModifier }
+Group : { 
+    modifier : GroupModifier,
+    expression : Expression, 
+    quantifier : [Quantifier Quantifier, NotQuantified], 
+}
 
-Expression : [NotImplemented] # ([Match(Match), Group(Group), AnchorWordBoundary, AnchorNonWordBoundary], [Expression(Expression), NoExpression])
+Expression : [NotImplemented]
 
-# Subexpression : [Match(Match), Group(Group), AnchorWordBoundary, AnchorNonWordBoundary]
+# Expression : {
+#     subexpression : List [
+#         Match Match,
+#         Group Group,
+#         AnchorWordBoundary,
+#         AnchorNonWordBoundary,
+#     ],
+#     expression : [Expression Expression, NoExpression],
+# }
