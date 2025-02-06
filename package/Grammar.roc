@@ -26,7 +26,7 @@ import Types exposing [
 ## Expression ::= Subexpression ("|" Expression)?
 expression : Parser Expression [InvalidExpression]
 expression = |str|
-    parser = string("a") |> map(|_| Ok(NotImplemented))
+    parser = string("expression") |> map(|_| Ok(NotImplemented))
     parser(str) |> Result.map_err(|_| InvalidExpression)
 
 # subexpression : Parser Subexpression [InvalidSubexpression]
@@ -44,7 +44,7 @@ group = |str|
     parser(str) |> Result.map_err(|_| InvalidGroup)
 
 expect
-    res = group("(?:a)+?")
+    res = group("(?:expression)+?")
     res == Ok(({ expression: NotImplemented, quantifier: Quantifier({ q: OneOrMoreQuantifier, modifier: Lazy }), modifier: NonCapturing }, ""))
 
 ## GroupNonCapturingModifier ::= "?:"
