@@ -202,14 +202,15 @@ char = |str|
 expect
     char("1") == Ok(('1', ""))
 
-atomic_grapheme : Parser Str [CodePointNotFound]
+## Parse a non-clustered grapheme
+atomic_grapheme : Parser Str [GraphemeNotFound]
 atomic_grapheme = |str|
     when Str.to_utf8(str) |> CodePoint.parse_partial_utf8 is
         Ok({code_point}) -> 
-            cp_str = CodePoint.to_str([code_point]) ?  |_| CodePointNotFound
+            cp_str = CodePoint.to_str([code_point]) ?  |_| GraphemeNotFound
             rest = Str.drop_prefix(str, cp_str)
             Ok((cp_str, rest))
-        Err _ -> Err CodePointNotFound
+        Err _ -> Err GraphemeNotFound
 
 expect
     res = atomic_grapheme("🔥")
