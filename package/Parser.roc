@@ -22,6 +22,7 @@ module [
     number,
 ]
 
+import unicode.CodePoint
 import Utils exposing [is_digit]
 
 ## TYPES ----------------------------------------------------------------------
@@ -200,6 +201,19 @@ char = |str|
 
 expect
     char("1") == Ok(('1', ""))
+
+atomic_grapheme : Parser Str [CodePointNotFound]
+atomic_grapheme = |str|
+    when Str.to_utf8(str) |> CodePoint.parse_partial_utf8 is
+        Ok({code_point}) -> 
+            cp_str = CodePoint.to_str([code_point]) ?  |_| CodePointNotFound
+            rest = Str.drop_prefix(str, cp_str)
+            Ok((cp_str, rest))
+        Err _ -> Err CodePointNotFound
+
+expect
+    res = atomic_grapheme("🔥")
+    res == Ok(("🔥", ""))
 
 ## Parse a digit
 digit : Parser U8 [NotADigit]
