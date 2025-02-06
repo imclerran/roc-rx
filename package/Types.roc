@@ -17,7 +17,7 @@ module [
     GroupModifier,
     Group,
     Expression,
-    # Subexpression,
+    Regex,
 ]
 
 RangeQuantifier : [
@@ -115,3 +115,9 @@ Expression : [NotImplemented]
 #     ],
 #     expression : [Expression Expression, NoExpression],
 # }
+
+Regex : {
+    anchor: [StartOfStringAnchor, NotAnchored],
+    expression: Expression,
+}
+
